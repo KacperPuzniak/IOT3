@@ -1,0 +1,56 @@
+version: '3.8'
+services:
+  cloud:
+    build: ./cloud
+    ports:
+      - 5001:5001
+    networks:
+      - iot-net
+
+  fog:
+    build: ./fog
+    ports:
+      - 5000:5000
+    environment:
+      - CLOUD_URL=http://cloud:5001/process
+      - LOGGER_URL=http://logger:5002/log
+      - THRESHOLD=1024
+    depends_on:
+      - cloud
+      - logger
+    networks:
+      - iot-net
+
+  logger:
+    build: ./logger
+    ports:
+      - 5002:5002
+    networks:
+      - iot-net
+
+  client1:
+    build: ./client1
+    depends_on:
+      - fog
+    environment:
+      - FOG_URL=http://fog:5000/ingest
+      - CLIENT_ID=client1
+      - PAYLOAD_SIZE=512
+    networks:
+      - iot-net
+
+  client2:
+    build: ./client2
+    depends_on:
+      - fog
+    environment:
+      - FOG_URL=http://fog:5000/ingest
+      - CLIENT_ID=client2
+      - PAYLOAD_SIZE=2048
+      - DOS_MODE=false
+    networks:
+      - iot-net
+
+networks:
+  iot-net:
+    driver: bridge
